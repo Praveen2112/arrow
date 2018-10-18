@@ -50,12 +50,23 @@ class LLVMGenerator {
   static Status Make(std::shared_ptr<Configuration> config,
                      std::unique_ptr<LLVMGenerator>* llvm_generator);
 
-  /// \brief Build the code for the expression trees. Each element in the vector
-  /// represents an expression tree
+  /// \brief Build the code for the expression trees for default mode. Each
+  /// element in the vector represents an expression tree
   Status Build(const ExpressionVector& exprs);
 
-  /// \brief Execute the built expression against the provided arguments.
+  /// \brief Build the code for the expression trees for all modes. Each
+  /// element in the vector represents an expression tree
+  Status BuildForAllMode(const ExpressionVector& exprs);
+
+  /// \brief Execute the built expression against the provided arguments for
+  /// default mode.
   Status Execute(const arrow::RecordBatch& record_batch,
+                 const ArrayDataVector& output_vector);
+
+  /// \brief Execute the built expression against the provided arguments for
+  /// all modes.
+  Status Execute(const arrow::RecordBatch& record_batch, const int& mode,
+                 const arrow::Buffer& selection_vector,
                  const ArrayDataVector& output_vector);
 
   LLVMTypes* types() { return engine_->types(); }
@@ -148,9 +159,13 @@ class LLVMGenerator {
     bool has_arena_allocs_;
   };
 
-  // Generate the code for one expression, with the output of the expression going to
-  // 'output'.
+  // Generate the code for one expression for default mode, with the output of
+  // the expression going to 'output'.
   Status Add(const ExpressionPtr expr, const FieldDescriptorPtr output);
+
+  // Generate the code for one expression for all modes, with the output of the expression
+  // going to 'output'.
+  Status AddForAllMode(const ExpressionPtr expr, const FieldDescriptorPtr output);
 
   /// Generate code to load the vector at specified index in the 'arg_addrs' array.
   llvm::Value* LoadVectorAtIndex(llvm::Value* arg_addrs, int idx,
@@ -165,9 +180,13 @@ class LLVMGenerator {
   /// Generate code to load the vector at specified index and cast it as offsets array.
   llvm::Value* GetOffsetsReference(llvm::Value* arg_addrs, int idx, FieldPtr field);
 
-  /// Generate code for the value array of one expression.
+  /// Generate code for the value array of one expression for default mode.
   Status CodeGenExprValue(DexPtr value_expr, FieldDescriptorPtr output, int suffix_idx,
                           llvm::Function** fn);
+
+  /// Generate code for the value array of one expression.
+  Status CodeGenExprValue(DexPtr value_expr, FieldDescriptorPtr output, int suffix_idx,
+                          llvm::Function** fn, int& mode);
 
   /// Generate code to load the local bitmap specified index and cast it as bitmap.
   llvm::Value* GetLocalBitMapReference(llvm::Value* arg_bitmaps, int idx);
